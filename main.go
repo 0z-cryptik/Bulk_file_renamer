@@ -59,6 +59,7 @@ func main(){
   fmt.Printf("\n")
 
   var details_of_files_to_rename []renameParams
+  seen_path := make(map[string]bool)
 
   for _, file := range(files) {
     if (file.IsDir()){
@@ -78,6 +79,13 @@ func main(){
       old_path: filepath.Join(folder, oldName),
       new_path: filepath.Join(folder, newName),
     }
+    
+    if(seen_path[details.new_path]){
+      fmt.Fprintf(os.Stderr, "Batch Collision Error, multiple files attempting to rename to %s\n", details.new_name)
+      os.Exit(1)
+    }
+
+    seen_path[details.new_path] = true
 
     details_of_files_to_rename = append(details_of_files_to_rename, details)
     fmt.Printf("%s will be changed to %s\n", oldName, newName)
@@ -104,9 +112,8 @@ func main(){
 
   files_successfully_renamed := 0
   fmt.Printf("\n")
-  
-  for _, file := range(details_of_files_to_rename) {
 
+  for _, file := range(details_of_files_to_rename) {
     // because if no error then the file already exist
     if _, err := os.Stat(file.new_path); err == nil {
       fmt.Printf("skipping %s because a file named %s already exists in this folder\n", file.old_name, file.new_name)
