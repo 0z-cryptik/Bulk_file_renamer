@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"bufio"
 )
 
 func main(){
-  user_input, err := get_user_input()
+  scanner := bufio.NewScanner(os.Stdin)
+
+  user_input, err := get_user_input(scanner)
   if(err != nil){
     fmt.Fprintf(os.Stderr, "%v\n", err)
     os.Exit(1)
@@ -31,10 +34,8 @@ func main(){
 
   var user_answer string
 
-  _, err = fmt.Scan(&user_answer)
-  if (err != nil){
-    fmt.Fprintf(os.Stderr, "Error reading user input\nError: %v\n", err)
-    os.Exit(1)
+  if (scanner.Scan()){
+    user_answer = scanner.Text()
   }
 
   if (user_answer != "Y" && user_answer != "y"){
