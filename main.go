@@ -9,13 +9,14 @@ import (
 )
 
 type renameParams struct {
-  old_name string
-  new_name string
-  old_path string
-  new_path string
+  old_name, new_name, old_path, new_path string
 }
 
-func main(){
+type userInput struct {
+  folder, text_to_replace, text_to_replace_with string
+}
+
+func get_user_input() (userInput, error){
   var folder string
   var text_to_replace string
   var text_to_replace_with string
@@ -41,19 +42,25 @@ func main(){
   }
 
   if err := scanner.Err(); err != nil {
-	  fmt.Fprintf(os.Stderr, "%v\n", err)
-	  os.Exit(1)
+	  return userInput{}, err
   }
 
-  if (text_to_replace == "" || text_to_replace_with == "" || folder == "") {
-	  fmt.Fprintf(os.Stderr, "\nError: Folder path and/or any of the rename parameters cannot be empty.\n")
-	  os.Exit(1)
+  var user_input userInput
+  user_input.folder = folder
+  user_input.text_to_replace = text_to_replace
+  user_input.text_to_replace_with = text_to_replace_with
+
+  return user_input, nil
+}
+
+func prep_files_for_rename(folder string, sub_str string, replacement_str string) ([]renameParams, error) {
+  if (sub_str == "" || replacement_str == "" || folder == "") {
+	  return nil, fmt.Errorf("Error: Folder path and/or any of the rename parameters cannot be empty.")
   }
 
   files, err := os.ReadDir(folder)
   if (err != nil) {
-	  fmt.Fprintf(os.Stderr, "%v\n", err)
-	  os.Exit(1)
+	  return nil, fmt.Errorf("Error reading folder: %w", err)
   }
 
   fmt.Printf("\n")
@@ -67,7 +74,7 @@ func main(){
     }
 
     oldName := file.Name()
-    newName := strings.ReplaceAll(oldName, text_to_replace, text_to_replace_with)
+    newName := strings.ReplaceAll(oldName, sub_str, replacement_str)
 
     if(oldName == newName) {
       continue
@@ -81,8 +88,7 @@ func main(){
     }
     
     if(seen_path[details.new_path]){
-      fmt.Fprintf(os.Stderr, "Batch Collision Error, multiple files attempting to rename to %s\n", details.new_name)
-      os.Exit(1)
+      return nil, fmt.Errorf("Batch Collision Error, multiple files attempting to rename to %s", details.new_name)
     }
 
     seen_path[details.new_path] = true
@@ -91,8 +97,51 @@ func main(){
     fmt.Printf("%s will be changed to %s\n", oldName, newName)
   }
 
+  return details_of_files_to_rename, nil
+}
+
+func perform_bulk_rename_op(file_details []renameParams) (int, error) {
+  files_successfully_renamed := 0
+  fmt.Printf("\n")
+
+  for _, file := range(file_details) {
+    // because if no error then the file already exist
+    if _, err := os.Stat(file.new_path); err == nil {
+      return files_successfully_renamed, fmt.Errorf("skipping %s because a file named %s already exists in this folder", file.old_name, file.new_name)
+    }
+
+    err := os.Rename(file.old_path, file.new_path)
+    if (err != nil) {
+      return files_successfully_renamed, fmt.Errorf("Error encountered while performing rename operation. %d files successfully renamed\nERROR DETAILS: %w", 
+        files_successfully_renamed, err)
+    }
+
+    fmt.Printf("%s successfully changed to %s\n", file.old_name, file.new_name)
+    files_successfully_renamed++
+  }
+
+  return files_successfully_renamed, nil
+}
+
+func main(){
+  user_input, err := get_user_input()
+  if(err != nil){
+    fmt.Fprintf(os.Stderr, "%v\n", err)
+    os.Exit(1)
+  }
+
+  folder := user_input.folder
+  subtext_to_match := user_input.text_to_replace
+  replacement_text := user_input.text_to_replace_with
+
+  details_of_files_to_rename, err := prep_files_for_rename(folder, subtext_to_match, replacement_text)
+  if(err != nil){
+    fmt.Fprintf(os.Stderr, "%v\n", err)
+    os.Exit(1)
+  }
+
   if (len(details_of_files_to_rename) < 1) {
-    fmt.Printf("No files matched the subtext '%s'\n", text_to_replace)
+    fmt.Printf("No files matched the subtext '%s'\n", subtext_to_match)
     return
   }
 
@@ -110,28 +159,11 @@ func main(){
     return
   }
 
-  files_successfully_renamed := 0
-  fmt.Printf("\n")
-
-  for _, file := range(details_of_files_to_rename) {
-    // because if no error then the file already exist
-    if _, err := os.Stat(file.new_path); err == nil {
-      fmt.Printf("skipping %s because a file named %s already exists in this folder\n", file.old_name, file.new_name)
-      continue
-    }
-
-    err := os.Rename(file.old_path, file.new_path)
-    if (err != nil) {
-      fmt.Fprintf(os.Stderr, 
-        "Error encountered while performing rename operation. %d files successfully renamed\nERROR DETAILS: %v\n", 
-        files_successfully_renamed, err)
-      
-      os.Exit(1)
-    }
-
-    fmt.Printf("%s successfully changed to %s\n", file.old_name, file.new_name)
-    files_successfully_renamed++
+  files_successfully_renamed, err := perform_bulk_rename_op(details_of_files_to_rename)
+  if(err != nil){
+    fmt.Fprintf(os.Stderr, "%v\n", err)
+    os.Exit(1)
   }
 
-  fmt.Printf("\nOperation successful, %d files renamed\n\n", files_successfully_renamed)
+  fmt.Printf("Operation successful, %d files renamed successfully", files_successfully_renamed)
 }
