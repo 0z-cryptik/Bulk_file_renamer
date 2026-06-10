@@ -48,7 +48,7 @@ func prep_files_for_rename(folder string, sub_str string, replacement_str string
     seen_path[details.new_path] = true
 
     details_of_files_to_rename = append(details_of_files_to_rename, details)
-    fmt.Printf("%s will be changed to %s\n", oldName, newName)
+    fmt.Printf("'%s' will be changed to '%s'\n", oldName, newName)
   }
 
   return details_of_files_to_rename, nil

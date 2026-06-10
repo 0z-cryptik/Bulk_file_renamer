@@ -28,7 +28,7 @@ func perform_bulk_rename_op(file_details []renameParams) (int, error) {
         files_successfully_renamed, err)
     }
 
-    fmt.Printf("%s successfully changed to %s\n", file.old_name, file.new_name)
+    fmt.Printf("'%s' successfully changed to '%s'\n", file.old_name, file.new_name)
     files_successfully_renamed++
   }
 
