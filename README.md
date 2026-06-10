@@ -52,9 +52,9 @@ Replace with: new
 Preview:
 
 ```bash
-'photo_old.jpg' will be changed to photo_new.jpg
-'document_old.pdf' will be changed to document_new.pdf
-'notes_old.txt' will be changed to notes_new.txt
+'photo_old.jpg' will be changed to 'photo_new.jpg'
+'document_old.pdf' will be changed 'to document_new.pdf'
+'notes_old.txt' will be changed to 'notes_new.txt'
 ```
 
 After confirmation, the files will be renamed accordingly.
